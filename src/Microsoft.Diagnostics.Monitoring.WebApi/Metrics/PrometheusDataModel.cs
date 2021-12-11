@@ -100,5 +100,52 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             }
             return char.IsLetterOrDigit(c);
         }
+
+        public static string GetPrometheusMetric(ICounterPayload metric, out string metricValue)
+        {
+            string unitSuffix = string.Empty;
+
+            if ((metric.Unit != null) && (!KnownUnits.TryGetValue(metric.Unit, out unitSuffix)))
+            {
+                //TODO The prometheus data model does not allow certain characters. Units we are not expecting could cause a scrape failure.
+                unitSuffix = "_" + metric.Unit;
+            }
+
+            double value = metric.Value;
+            if (string.Equals(metric.Unit, "MB", StringComparison.OrdinalIgnoreCase))
+            {
+                value *= 1_000_000; //Note that the metric uses MB not MiB
+            }
+
+            ParseMetricName(metric.Name, out var metricName, out var metricLabels);
+
+            metricValue = value.ToString(CultureInfo.InvariantCulture);
+            if (metricLabels != null)
+            {
+                metricValue = string.Concat(metricLabels, " ", metricValue);
+            }
+
+            return FormattableString.Invariant($"{metric.Provider.Replace(".", string.Empty).ToLowerInvariant()}_{metricName.Replace('-', '_')}{unitSuffix}");
+        }
+
+        private static void ParseMetricName(string value, out string name, out string labels)
+        {
+            name = value;
+            labels = null;
+
+            var labelsStartIndex = value.IndexOf('{');
+            if (labelsStartIndex < 0 || labelsStartIndex == value.Length - 1)
+                return;
+
+            name = value.Substring(0, labelsStartIndex);
+
+            var labelsEndIndex = value.IndexOf('}', labelsStartIndex + 1);
+            if (labelsEndIndex < 0)
+                return;
+
+            var labelsLength = labelsEndIndex - labelsStartIndex + 1;
+            if (labelsLength > 2)
+                labels = value.Substring(labelsStartIndex, labelsLength);
+        }
     }
 }

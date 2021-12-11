@@ -95,10 +95,10 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             foreach (var metricGroup in copy)
             {
                 ICounterPayload metricInfo = metricGroup.Value.First();
-                string metricName = PrometheusDataModel.Normalize(metricInfo.Provider, metricInfo.Name,
-                    metricInfo.Unit, metricInfo.Value, out string metricValue);
-
+                string metricName = PrometheusDataModel.GetPrometheusMetric(metricInfo, out string metricValue);
                 string metricType = "gauge";
+                if (metricName.EndsWith("_total"))
+                    metricType = "counter";
 
                 //TODO Some clr metrics claim to be incrementing, but are really gauges.
 
