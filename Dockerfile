@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 COPY --from=ochinchina/supervisord:latest /usr/local/bin/supervisord /usr/local/bin/supervisord
+ARG BUST_CACHE=$RANDOM
 COPY src/supervisord.conf /app/supervisord.conf
 COPY /artifacts/bin/dotnet-monitor/Release/net6.0/publish /app
 ENV ASPNETCORE_URLS=
